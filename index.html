@@ -167,133 +167,99 @@
         </button>
     </div>
 
-    <script>
-        // Базовая функция для кодирования строк в ArrayBuffer
-        function str2ab(str) {
-            const buf = new ArrayBuffer(str.length);
-            const bufView = new Uint8Array(buf);
-            for (let i = 0, strLen = str.length; i < strLen; i++) {
-                bufView[i] = str.charCodeAt(i);
-            }
-            return buf;
-        }
+    <div id="faceID-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000;">
+        <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <video id="video" width="640" height="480" autoplay style="border-radius: 20px;"></video>
+            <button onclick="closeFaceID()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">×</button>
+            <div id="loading-message" style="color: white; margin-top: 20px; font-size: 18px;">Загрузка...</div>
+        </div>
+    </div>
 
-        // Функция для создания случайного вызова
-        function generateRandomChallenge() {
-            const array = new Uint8Array(32);
-            window.crypto.getRandomValues(array);
-            return array;
+    <script>
+        let isModelLoaded = false;
+
+        async function loadFaceAPIModels() {
+            if (!isModelLoaded) {
+                const loadingMessage = document.getElementById('loading-message');
+                loadingMessage.textContent = 'Загрузка моделей...';
+                
+                try {
+                    await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                    await faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                    await faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                    
+                    isModelLoaded = true;
+                    loadingMessage.textContent = 'Смотрите в камеру';
+                } catch (error) {
+                    loadingMessage.textContent = 'Ошибка загрузки моделей';
+                    console.error('Ошибка загрузки моделей:', error);
+                }
+            }
         }
 
         async function loginWithFaceID() {
             try {
-                // Проверяем поддержку WebAuthn
-                if (!window.PublicKeyCredential) {
-                    alert('Ваш браузер не поддерживает WebAuthn');
-                    return;
-                }
+                const modal = document.getElementById('faceID-modal');
+                const video = document.getElementById('video');
+                modal.style.display = 'block';
 
-                // Проверяем доступность биометрии
-                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-                if (!available) {
-                    alert('Face ID недоступен на вашем устройстве');
-                    return;
-                }
+                await loadFaceAPIModels();
 
-                // Если это первый вход, регистрируем биометрию
-                if (!localStorage.getItem('webAuthnRegistered')) {
-                    await registerWebAuthn();
-                } else {
-                    await authenticateWebAuthn();
-                }
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+
+                video.addEventListener('play', async () => {
+                    const loadingMessage = document.getElementById('loading-message');
+                    loadingMessage.textContent = 'Идет распознавание...';
+                    
+                    const detectionTimer = setInterval(async () => {
+                        const detections = await faceapi.detectAllFaces(video, 
+                            new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks();
+
+                        if (detections.length > 0) {
+                            clearInterval(detectionTimer);
+                            loadingMessage.textContent = 'Лицо распознано!';
+                            
+                            // Останавливаем видеопоток
+                            stream.getTracks().forEach(track => track.stop());
+                            
+                            // Закрываем модальное окно
+                            setTimeout(() => {
+                                modal.style.display = 'none';
+                                // Успешная аутентификация
+                                localStorage.setItem('userPhone', 'FaceID_User');
+                                window.location.href = 'main.html';
+                            }, 1000);
+                        }
+                    }, 100);
+                });
 
             } catch (error) {
                 console.error('Ошибка Face ID:', error);
                 alert('Ошибка при использовании Face ID: ' + error.message);
+                closeFaceID();
             }
         }
 
-        async function registerWebAuthn() {
-            const challenge = generateRandomChallenge();
+        function closeFaceID() {
+            const modal = document.getElementById('faceID-modal');
+            const video = document.getElementById('video');
             
-            const createCredentialOptions = {
-                publicKey: {
-                    challenge: challenge,
-                    rp: {
-                        name: "Ваше приложение",
-                        id: window.location.hostname
-                    },
-                    user: {
-                        id: str2ab('testuser'),
-                        name: "testuser@example.com",
-                        displayName: "Test User"
-                    },
-                    pubKeyCredParams: [{
-                        type: "public-key",
-                        alg: -7 // ES256
-                    }],
-                    authenticatorSelection: {
-                        authenticatorAttachment: "platform",
-                        userVerification: "required",
-                        requireResidentKey: false
-                    },
-                    timeout: 60000,
-                    attestation: "none"
-                }
-            };
-
-            try {
-                const credential = await navigator.credentials.create(createCredentialOptions);
-                
-                // Сохраняем ID учетных данных
-                localStorage.setItem('webAuthnCredentialId', 
-                    btoa(String.fromCharCode.apply(null, new Uint8Array(credential.rawId))));
-                localStorage.setItem('webAuthnRegistered', 'true');
-                
-                // Переходим на главную страницу
-                localStorage.setItem('userPhone', 'FaceID_User');
-                window.location.href = 'main.html';
-            } catch (error) {
-                console.error('Ошибка регистрации:', error);
-                alert('Ошибка при регистрации Face ID');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
             }
+            modal.style.display = 'none';
         }
 
-        async function authenticateWebAuthn() {
-            const credentialId = Uint8Array.from(atob(localStorage.getItem('webAuthnCredentialId')), 
-                c => c.charCodeAt(0));
-            
-            const challenge = generateRandomChallenge();
-
-            const getCredentialOptions = {
-                publicKey: {
-                    challenge: challenge,
-                    rpId: window.location.hostname,
-                    allowCredentials: [{
-                        id: credentialId,
-                        type: 'public-key',
-                        transports: ['internal']
-                    }],
-                    userVerification: "required",
-                    timeout: 60000
-                }
-            };
-
-            try {
-                const assertion = await navigator.credentials.get(getCredentialOptions);
-                
-                if (assertion) {
-                    // Успешная аутентификация
-                    localStorage.setItem('userPhone', 'FaceID_User');
-                    window.location.href = 'main.html';
-                }
-            } catch (error) {
-                console.error('Ошибка аутентификации:', error);
-                alert('Ошибка при использовании Face ID');
-            }
-        }
-
-        // Оставляем существующий код для формы входа
+        // Оставьте существующий код для формы входа
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const phone = document.getElementById('phone').value;
