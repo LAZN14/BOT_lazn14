@@ -26,21 +26,10 @@ class FaceIDHandler {
     }
 
     async initCamera() {
-        if (typeof blazeface === 'undefined') {
-            this.showError('Библиотека BlazeFace не загружена');
-            throw new Error('Библиотека BlazeFace не загружена');
-        }
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            this.showError('Ваше устройство не поддерживает доступ к камере');
-            throw new Error('Ваше устройство не поддерживает доступ к камере');
-        }
-
         try {
-            this.showError('Загрузка модели...');
-            this.model = await blazeface.load();
-            this.showError('Модель успешно загружена');
-
+            // Запрашиваем разрешения через Telegram WebApp
+            await window.Telegram.WebApp.requestCamera();
+            
             this.video = document.createElement('video');
             this.canvas = document.createElement('canvas');
             
@@ -51,26 +40,22 @@ class FaceIDHandler {
             this.video.style.objectFit = 'cover';
 
             this.showError('Запрос доступа к камере...');
+            
+            // Запрашиваем доступ к камере с минимальными настройками
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: "user",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 30 }
+                    facingMode: "user"
                 },
                 audio: false
             });
+            
             this.showError('Доступ к камере получен');
-
             this.video.srcObject = this.stream;
+            
             return new Promise((resolve) => {
                 this.video.onloadedmetadata = () => {
-                    this.showError('Видео метаданные загружены');
                     this.video.play()
-                        .then(() => {
-                            this.showError('Видео запущено');
-                            resolve();
-                        })
+                        .then(resolve)
                         .catch(error => {
                             this.showError('Ошибка запуска видео: ' + error.message);
                             throw error;
@@ -84,19 +69,12 @@ class FaceIDHandler {
     }
 
     async captureFace() {
-        if (!this.video || !this.model) {
+        if (!this.video) {
             this.showError('Камера не инициализирована');
             throw new Error('Камера не инициализирована');
         }
 
         try {
-            const predictions = await this.model.estimateFaces(this.video, false);
-            
-            if (predictions.length === 0) {
-                this.showError('Лицо не обнаружено');
-                throw new Error("Лицо не обнаружено");
-            }
-
             const context = this.canvas.getContext('2d');
             this.canvas.width = this.video.videoWidth;
             this.canvas.height = this.video.videoHeight;
@@ -105,10 +83,10 @@ class FaceIDHandler {
             const imageData = this.canvas.toDataURL('image/jpeg', 1.0);
             return {
                 image: imageData,
-                faceData: predictions[0]
+                faceData: null // Пока убираем распознавание лица
             };
         } catch (err) {
-            this.showError('Ошибка при захвате лица: ' + err.message);
+            this.showError('Ошибка при захвате фото: ' + err.message);
             throw err;
         }
     }
