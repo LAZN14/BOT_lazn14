@@ -1,120 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Telegram WebApp</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
+        .auth-form {
+            max-width: 300px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .hidden {
-            display: none;
-        }
-        .button {
-            background-color: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 10px 0;
+        
+        input {
             width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
-        .input {
+        
+        button {
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
-            border: 1px solid var(--tg-theme-hint-color, #999999);
-            border-radius: 8px;
-            box-sizing: border-box;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="auth-section">
-            <h2>Авторизация</h2>
-            <input type="tel" id="phone" class="input" placeholder="Введите номер телефона" pattern="[0-9]{11}">
-            <div id="code-section" class="hidden">
-                <input type="text" id="code" class="input" placeholder="Введите код подтверждения">
-                <button onclick="verifyCode()" class="button">Подтвердить код</button>
-            </div>
-            <button onclick="requestCode()" id="request-code-btn" class="button">Получить код</button>
-        </div>
-
-        <div id="main-section" class="hidden">
-            <h1>Моё веб-приложение</h1>
-            <p>Вы успешно авторизованы!</p>
-            <button onclick="sendData()" class="button">Отправить данные в бот</button>
-        </div>
+    <div class="auth-form">
+        <form id="loginForm">
+            <input 
+                type="tel" 
+                id="phone" 
+                placeholder="Введите номер телефона"
+                required
+            >
+            <button type="submit">Войти</button>
+        </form>
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-
-        // Переменные для хранения данных пользователя
-        let userPhone = '';
-        let isAuthenticated = false;
-
-        function requestCode() {
-            const phoneInput = document.getElementById('phone');
-            userPhone = phoneInput.value;
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const phone = document.getElementById('phone').value;
             
-            if (!userPhone.match(/^[0-9]{11}$/)) {
-                alert('Пожалуйста, введите корректный номер телефона (11 цифр)');
-                return;
-            }
-
-            // Здесь должен быть запрос к вашему серверу для отправки кода
-            // Имитация отправки кода
-            document.getElementById('code-section').classList.remove('hidden');
-            document.getElementById('request-code-btn').classList.add('hidden');
-            phoneInput.disabled = true;
-        }
-
-        function verifyCode() {
-            const code = document.getElementById('code').value;
-            
-            if (!code) {
-                alert('Пожалуйста, введите код подтверждения');
-                return;
-            }
-
-            // Здесь должна быть проверка кода на сервере
-            // Имитация успешной проверки
-            isAuthenticated = true;
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('main-section').classList.remove('hidden');
-        }
-
-        function sendData() {
-            if (!isAuthenticated) {
-                alert('Пожалуйста, сначала авторизуйтесь');
-                return;
-            }
-
-            const data = {
-                phone: userPhone,
-                message: "Привет из веб-приложения!",
-                authenticated: true
-            };
-            tg.sendData(JSON.stringify(data));
-            tg.close();
-        }
-
-        // Инициализация темы Telegram
-        document.addEventListener('DOMContentLoaded', function() {
-            tg.MainButton.hide();
-            if (tg.initDataUnsafe.user) {
-                console.log('User:', tg.initDataUnsafe.user);
+            // Здесь можно добавить простую валидацию номера телефона
+            if (phone) {
+                // Сохраняем номер телефона в localStorage
+                localStorage.setItem('userPhone', phone);
+                // Перенаправляем на главную страницу
+                window.location.href = 'main.html';
             }
         });
     </script>
