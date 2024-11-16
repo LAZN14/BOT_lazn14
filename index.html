@@ -3,22 +3,120 @@
 <head>
     <title>Telegram WebApp</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .hidden {
+            display: none;
+        }
+        .button {
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        .input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid var(--tg-theme-hint-color, #999999);
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
-    <h1>Моё веб-приложение</h1>
-    <button onclick="sendData()">Отправить данные в бот</button>
+    <div class="container">
+        <div id="auth-section">
+            <h2>Авторизация</h2>
+            <input type="tel" id="phone" class="input" placeholder="Введите номер телефона" pattern="[0-9]{11}">
+            <div id="code-section" class="hidden">
+                <input type="text" id="code" class="input" placeholder="Введите код подтверждения">
+                <button onclick="verifyCode()" class="button">Подтвердить код</button>
+            </div>
+            <button onclick="requestCode()" id="request-code-btn" class="button">Получить код</button>
+        </div>
+
+        <div id="main-section" class="hidden">
+            <h1>Моё веб-приложение</h1>
+            <p>Вы успешно авторизованы!</p>
+            <button onclick="sendData()" class="button">Отправить данные в бот</button>
+        </div>
+    </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Переменные для хранения данных пользователя
+        let userPhone = '';
+        let isAuthenticated = false;
+
+        function requestCode() {
+            const phoneInput = document.getElementById('phone');
+            userPhone = phoneInput.value;
+            
+            if (!userPhone.match(/^[0-9]{11}$/)) {
+                alert('Пожалуйста, введите корректный номер телефона (11 цифр)');
+                return;
+            }
+
+            // Здесь должен быть запрос к вашему серверу для отправки кода
+            // Имитация отправки кода
+            document.getElementById('code-section').classList.remove('hidden');
+            document.getElementById('request-code-btn').classList.add('hidden');
+            phoneInput.disabled = true;
+        }
+
+        function verifyCode() {
+            const code = document.getElementById('code').value;
+            
+            if (!code) {
+                alert('Пожалуйста, введите код подтверждения');
+                return;
+            }
+
+            // Здесь должна быть проверка кода на сервере
+            // Имитация успешной проверки
+            isAuthenticated = true;
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('main-section').classList.remove('hidden');
+        }
+
         function sendData() {
+            if (!isAuthenticated) {
+                alert('Пожалуйста, сначала авторизуйтесь');
+                return;
+            }
+
             const data = {
-                message: "Привет из веб-приложения!"
+                phone: userPhone,
+                message: "Привет из веб-приложения!",
+                authenticated: true
             };
             tg.sendData(JSON.stringify(data));
             tg.close();
         }
+
+        // Инициализация темы Telegram
+        document.addEventListener('DOMContentLoaded', function() {
+            tg.MainButton.hide();
+            if (tg.initDataUnsafe.user) {
+                console.log('User:', tg.initDataUnsafe.user);
+            }
+        });
     </script>
 </body>
 </html> 
