@@ -37,18 +37,56 @@
         .welcome-title {
             font-size: 32px;
             color: #333;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-weight: 500;
         }
 
-        .phone-info {
+        .welcome-subtitle {
             font-size: 18px;
             color: #666;
+            margin-bottom: 40px;
+        }
+
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
             margin-bottom: 30px;
-            padding: 15px;
-            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .nav-btn {
+            padding: 20px;
+            border: none;
             border-radius: 12px;
-            display: inline-block;
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-intercom {
+            background: linear-gradient(135deg, #20bf55 0%, #01baef 100%);
+        }
+
+        .btn-intercom:hover {
+            box-shadow: 0 5px 15px rgba(32, 191, 85, 0.4);
+        }
+
+        .btn-residents {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+        }
+
+        .btn-residents:hover {
+            box-shadow: 0 5px 15px rgba(246, 211, 101, 0.4);
         }
 
         .logout-btn {
@@ -76,6 +114,10 @@
             .welcome-title {
                 font-size: 24px;
             }
+
+            .nav-buttons {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -83,9 +125,17 @@
     <div class="container">
         <div class="profile-card">
             <h1 class="welcome-title">Добро пожаловать!</h1>
-            <div class="phone-info">
-                Ваш номер телефона: <span id="userPhone"></span>
+            <p class="welcome-subtitle">Вы авторизовались</p>
+            
+            <div class="nav-buttons">
+                <a href="intercom.html" class="nav-btn btn-intercom">
+                    Просмотр домофонов
+                </a>
+                <a href="residents.html" class="nav-btn btn-residents">
+                    Просмотр жильцов
+                </a>
             </div>
+
             <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
     </div>
@@ -95,8 +145,6 @@
         if (!userPhone) {
             window.location.href = 'index.html';
         }
-        
-        document.getElementById('userPhone').textContent = userPhone;
         
         function logout() {
             localStorage.removeItem('userPhone');
