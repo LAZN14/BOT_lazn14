@@ -160,6 +160,90 @@
             margin-right: 8px;
             font-size: 20px;
         }
+
+        .face-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .face-modal-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .face-modal video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .face-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+
+        .scanning-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--primary-light);
+            animation: scan 2s linear infinite;
+        }
+
+        .face-modal-buttons {
+            position: fixed;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 16px;
+            padding: 0 20px;
+            z-index: 1001;
+        }
+
+        .face-modal-buttons button {
+            flex: 1;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .face-modal-buttons button:last-child {
+            background: #EF4444;
+        }
+
+        @keyframes scan {
+            0% {
+                clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+            }
+            100% {
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            }
+        }
     </style>
 </head>
 <body>
@@ -243,9 +327,12 @@
                 modal.className = 'face-modal';
                 modal.innerHTML = `
                     <div class="face-modal-content">
-                        <video id="preview" autoplay playsinline></video>
+                        <video id="preview" playsinline autoplay></video>
+                        <div class="face-frame">
+                            <div class="scanning-animation"></div>
+                        </div>
                         <div class="face-modal-buttons">
-                            <button id="capture">Сканировать лицо</button>
+                            <button id="capture">Сканировать</button>
                             <button id="cancel">Отмена</button>
                         </div>
                     </div>
