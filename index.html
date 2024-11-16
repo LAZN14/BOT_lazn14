@@ -67,7 +67,6 @@
         button {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 12px;
             color: white;
@@ -75,6 +74,19 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .faceid-btn {
+            background: linear-gradient(135deg, #20bf55 0%, #01baef 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
         button:hover {
@@ -82,12 +94,38 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .phone-icon {
+        .faceid-btn:hover {
+            box-shadow: 0 5px 15px rgba(32, 191, 85, 0.4);
+        }
+
+        .or-divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+            color: #666;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
             position: absolute;
-            left: 15px;
             top: 50%;
-            transform: translateY(-50%);
-            color: #999;
+            width: 45%;
+            height: 1px;
+            background-color: #ddd;
+        }
+
+        .or-divider::before {
+            left: 0;
+        }
+
+        .or-divider::after {
+            right: 0;
+        }
+
+        .face-icon {
+            width: 24px;
+            height: 24px;
         }
 
         @media (max-width: 480px) {
@@ -110,8 +148,22 @@
                     pattern="[0-9]{11}"
                 >
             </div>
-            <button type="submit">Войти</button>
+            <button type="submit" class="login-btn">Войти</button>
         </form>
+
+        <div class="or-divider">или</div>
+
+        <button onclick="loginWithFaceID()" class="faceid-btn">
+            <svg class="face-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 10H7V12H9V10Z" fill="currentColor"/>
+                <path d="M17 10H15V12H17V10Z" fill="currentColor"/>
+                <path d="M12 17C14.2091 17 16 15.2091 16 13H8C8 15.2091 9.79086 17 12 17Z" fill="currentColor"/>
+                <path d="M10 5H8V7H10V5Z" fill="currentColor"/>
+                <path d="M16 5H14V7H16V5Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12ZM20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4C16.4183 4 20 7.58172 20 12Z" fill="currentColor"/>
+            </svg>
+            Войти по Face ID
+        </button>
     </div>
 
     <script>
@@ -124,6 +176,21 @@
                 window.location.href = 'main.html';
             }
         });
+
+        function loginWithFaceID() {
+            // Здесь будет логика для Face ID
+            if ('FaceDetector' in window) {
+                // Если браузер поддерживает Face ID
+                alert('Смотрите в камеру для сканирования лица');
+                // Здесь должна быть реальная логика Face ID
+                setTimeout(() => {
+                    localStorage.setItem('userPhone', 'FaceID_User');
+                    window.location.href = 'main.html';
+                }, 2000);
+            } else {
+                alert('Ваше устройство не поддерживает Face ID');
+            }
+        }
     </script>
 </body>
 </html> 
