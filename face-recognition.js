@@ -6,19 +6,40 @@ class FaceIDHandler {
         this.model = null;
     }
 
+    showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.bottom = '20px';
+        errorDiv.style.left = '20px';
+        errorDiv.style.right = '20px';
+        errorDiv.style.padding = '15px';
+        errorDiv.style.background = '#EF4444';
+        errorDiv.style.color = 'white';
+        errorDiv.style.borderRadius = '8px';
+        errorDiv.style.zIndex = '9999';
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        
+        setTimeout(() => {
+            document.body.removeChild(errorDiv);
+        }, 3000);
+    }
+
     async initCamera() {
         if (typeof blazeface === 'undefined') {
+            this.showError('Библиотека BlazeFace не загружена');
             throw new Error('Библиотека BlazeFace не загружена');
         }
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            this.showError('Ваше устройство не поддерживает доступ к камере');
             throw new Error('Ваше устройство не поддерживает доступ к камере');
         }
 
         try {
-            console.log('Загрузка модели...');
+            this.showError('Загрузка модели...');
             this.model = await blazeface.load();
-            console.log('Модель успешно загружена');
+            this.showError('Модель успешно загружена');
 
             this.video = document.createElement('video');
             this.canvas = document.createElement('canvas');
@@ -29,7 +50,7 @@ class FaceIDHandler {
             this.video.style.height = '100%';
             this.video.style.objectFit = 'cover';
 
-            console.log('Запрос доступа к камере...');
+            this.showError('Запрос доступа к камере...');
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "user",
@@ -39,31 +60,32 @@ class FaceIDHandler {
                 },
                 audio: false
             });
-            console.log('Доступ к камере получен');
+            this.showError('Доступ к камере получен');
 
             this.video.srcObject = this.stream;
             return new Promise((resolve) => {
                 this.video.onloadedmetadata = () => {
-                    console.log('Видео метаданные загружены');
+                    this.showError('Видео метаданные загружены');
                     this.video.play()
                         .then(() => {
-                            console.log('Видео запущено');
+                            this.showError('Видео запущено');
                             resolve();
                         })
                         .catch(error => {
-                            console.error('Ошибка запуска видео:', error);
+                            this.showError('Ошибка запуска видео: ' + error.message);
                             throw error;
                         });
                 };
             });
         } catch (err) {
-            console.error("Подробная ошибка инициализации:", err);
-            throw new Error(`Ошибка доступа к камере: ${err.message}`);
+            this.showError('Ошибка: ' + err.message);
+            throw err;
         }
     }
 
     async captureFace() {
         if (!this.video || !this.model) {
+            this.showError('Камера не инициализирована');
             throw new Error('Камера не инициализирована');
         }
 
@@ -71,6 +93,7 @@ class FaceIDHandler {
             const predictions = await this.model.estimateFaces(this.video, false);
             
             if (predictions.length === 0) {
+                this.showError('Лицо не обнаружено');
                 throw new Error("Лицо не обнаружено");
             }
 
@@ -85,7 +108,7 @@ class FaceIDHandler {
                 faceData: predictions[0]
             };
         } catch (err) {
-            console.error("Ошибка при захвате лица:", err);
+            this.showError('Ошибка при захвате лица: ' + err.message);
             throw err;
         }
     }
@@ -94,7 +117,7 @@ class FaceIDHandler {
         if (this.stream) {
             this.stream.getTracks().forEach(track => {
                 track.stop();
-                console.log('Камера остановлена');
+                this.showError('Камера остановлена');
             });
         }
     }
