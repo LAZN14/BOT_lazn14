@@ -7,41 +7,58 @@ class FaceIDHandler {
     }
 
     async initCamera() {
+        if (typeof blazeface === 'undefined') {
+            throw new Error('Библиотека BlazeFace не загружена');
+        }
+
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error('Ваше устройство не поддерживает доступ к камере');
         }
 
-        this.video = document.createElement('video');
-        this.canvas = document.createElement('canvas');
-        
-        this.video.setAttribute('playsinline', '');
-        this.video.setAttribute('autoplay', '');
-        this.video.style.width = '100%';
-        this.video.style.height = '100%';
-        this.video.style.objectFit = 'cover';
-
         try {
+            console.log('Загрузка модели...');
             this.model = await blazeface.load();
-            console.log('Модель загружена');
+            console.log('Модель успешно загружена');
+
+            this.video = document.createElement('video');
+            this.canvas = document.createElement('canvas');
             
-            this.stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
+            this.video.setAttribute('playsinline', '');
+            this.video.setAttribute('autoplay', '');
+            this.video.style.width = '100%';
+            this.video.style.height = '100%';
+            this.video.style.objectFit = 'cover';
+
+            console.log('Запрос доступа к камере...');
+            this.stream = await navigator.mediaDevices.getUserMedia({
+                video: {
                     facingMode: "user",
                     width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                } 
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30 }
+                },
+                audio: false
             });
             console.log('Доступ к камере получен');
 
             this.video.srcObject = this.stream;
             return new Promise((resolve) => {
                 this.video.onloadedmetadata = () => {
-                    this.video.play().then(resolve);
+                    console.log('Видео метаданные загружены');
+                    this.video.play()
+                        .then(() => {
+                            console.log('Видео запущено');
+                            resolve();
+                        })
+                        .catch(error => {
+                            console.error('Ошибка запуска видео:', error);
+                            throw error;
+                        });
                 };
             });
         } catch (err) {
-            console.error("Ошибка инициализации камеры:", err);
-            throw new Error(err.message || 'Ошибка доступа к камере');
+            console.error("Подробная ошибка инициализации:", err);
+            throw new Error(`Ошибка доступа к камере: ${err.message}`);
         }
     }
 
