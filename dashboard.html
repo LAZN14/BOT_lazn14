@@ -3,6 +3,7 @@
 <head>
     <title>Панель управления</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="face-recognition.js"></script>
     <style>
         :root {
             --primary-color: #8B5CF6;
@@ -76,6 +77,57 @@
             margin-right: 12px;
             font-size: 24px;
         }
+
+        .security-button {
+            background-color: #10B981;  /* Зеленый цвет для кнопки безопасности */
+            margin-top: 20px;
+        }
+
+        .security-button:hover {
+            background-color: #059669;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: var(--tg-theme-hint-color, #6B7280);
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background-color: var(--tg-theme-hint-color, #6B7280);
+            opacity: 0.3;
+        }
+
+        .divider::before {
+            left: 0;
+        }
+
+        .divider::after {
+            right: 0;
+        }
+
+        .secondary-button {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .secondary-button:hover:not(:disabled) {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .icon {
+            margin-right: 8px;
+            font-size: 20px;
+        }
     </style>
 </head>
 <body>
@@ -90,7 +142,16 @@
                 <span class="icon">🏠</span>
                 Список домофонов
             </button>
+            <button class="menu-button security-button" onclick="registerFaceId()">
+                <span class="icon">🔐</span>
+                Зарегистрировать Face ID
+            </button>
         </div>
+        <div class="divider">или</div>
+        <button id="faceIdButton" class="secondary-button">
+            <span class="icon">👤</span>
+            Войти по Face ID
+        </button>
     </div>
 
     <script>
@@ -106,6 +167,60 @@
             // Здесь будет логика для перехода к списку домофонов
             tg.MainButton.setText('Список домофонов');
             tg.MainButton.show();
+        }
+
+        async function registerFaceId() {
+            try {
+                const faceHandler = new FaceIDHandler();
+                await faceHandler.initCamera();
+                
+                const modal = document.createElement('div');
+                modal.className = 'face-modal';
+                modal.innerHTML = `
+                    <div class="face-modal-content">
+                        <video id="preview" autoplay playsinline></video>
+                        <div class="face-modal-buttons">
+                            <button id="capture">Сохранить Face ID</button>
+                            <button id="cancel">Отмена</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                const video = document.getElementById('preview');
+                video.srcObject = faceHandler.stream;
+
+                document.getElementById('capture').onclick = async () => {
+                    const faceData = await faceHandler.captureFace();
+                    
+                    // Отправляем на сервер для сохранения
+                    const response = await fetch('/api/register-face', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ faceData })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        alert('Face ID успешно зарегистрирован');
+                    } else {
+                        alert('Ошибка регистрации Face ID');
+                    }
+                    
+                    faceHandler.stopCamera();
+                    document.body.removeChild(modal);
+                };
+
+                document.getElementById('cancel').onclick = () => {
+                    faceHandler.stopCamera();
+                    document.body.removeChild(modal);
+                };
+            } catch (err) {
+                alert('Ошибка доступа к камере');
+                console.error(err);
+            }
         }
 
         tg.expand();
