@@ -3,13 +3,13 @@ class FaceIDHandler {
         this.video = null;
         this.canvas = null;
         this.stream = null;
+        this.model = null;
     }
 
     async initCamera() {
         this.video = document.createElement('video');
         this.canvas = document.createElement('canvas');
         
-        // Настройки видео для лучшего качества
         this.video.setAttribute('playsinline', '');
         this.video.setAttribute('autoplay', '');
         this.video.style.width = '100%';
@@ -17,6 +17,8 @@ class FaceIDHandler {
         this.video.style.objectFit = 'cover';
 
         try {
+            this.model = await blazeface.load();
+            
             this.stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
                     facingMode: "user",
@@ -27,19 +29,28 @@ class FaceIDHandler {
             this.video.srcObject = this.stream;
             await this.video.play();
         } catch (err) {
-            console.error("Ошибка доступа к камере:", err);
+            console.error("Ошибка:", err);
             throw err;
         }
     }
 
     async captureFace() {
+        const predictions = await this.model.estimateFaces(this.video, false);
+        
+        if (predictions.length === 0) {
+            throw new Error("Лицо не обнаружено");
+        }
+
         const context = this.canvas.getContext('2d');
         this.canvas.width = this.video.videoWidth;
         this.canvas.height = this.video.videoHeight;
         context.drawImage(this.video, 0, 0);
         
         const imageData = this.canvas.toDataURL('image/jpeg', 1.0);
-        return imageData;
+        return {
+            image: imageData,
+            faceData: predictions[0]
+        };
     }
 
     stopCamera() {
