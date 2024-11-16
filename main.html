@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -119,6 +120,59 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .register-faceid-btn {
+            background: linear-gradient(135deg, #20bf55 0%, #01baef 100%);
+            margin-top: 20px;
+        }
+
+        .register-faceid-btn:hover {
+            box-shadow: 0 5px 15px rgba(32, 191, 85, 0.4);
+        }
+
+        #faceID-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #video {
+            border-radius: 20px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #loading-message {
+            color: white;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -136,7 +190,19 @@
                 </a>
             </div>
 
+            <button onclick="registerFaceID()" class="nav-btn register-faceid-btn" id="registerFaceIDBtn">
+                Зарегистрировать Face ID
+            </button>
+
             <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+    </div>
+
+    <div id="faceID-modal">
+        <div class="modal-content">
+            <video id="video" width="640" height="480" autoplay></video>
+            <button class="close-modal" onclick="closeFaceIDModal()">×</button>
+            <div id="loading-message">Загрузка...</div>
         </div>
     </div>
 
@@ -145,7 +211,95 @@
         if (!userPhone) {
             window.location.href = 'index.html';
         }
+
+        if (localStorage.getItem('faceID_' + userPhone)) {
+            document.getElementById('registerFaceIDBtn').style.display = 'none';
+        }
         
+        let isModelLoaded = false;
+
+        async function loadFaceAPIModels() {
+            if (!isModelLoaded) {
+                const loadingMessage = document.getElementById('loading-message');
+                loadingMessage.textContent = 'Загрузка моделей...';
+                
+                try {
+                    await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                    await faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                    await faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                    
+                    isModelLoaded = true;
+                    loadingMessage.textContent = 'Смотрите в камеру';
+                } catch (error) {
+                    loadingMessage.textContent = 'Ошибка загрузки моделей';
+                    console.error('Ошибка загрузки моделей:', error);
+                }
+            }
+        }
+
+        async function registerFaceID() {
+            try {
+                const modal = document.getElementById('faceID-modal');
+                const video = document.getElementById('video');
+                modal.style.display = 'block';
+
+                await loadFaceAPIModels();
+
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+
+                video.addEventListener('play', async () => {
+                    const loadingMessage = document.getElementById('loading-message');
+                    loadingMessage.textContent = 'Идет сканирование лица...';
+                    
+                    const detectionTimer = setInterval(async () => {
+                        const detections = await faceapi.detectAllFaces(video, 
+                            new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptors();
+
+                        if (detections.length > 0) {
+                            clearInterval(detectionTimer);
+                            loadingMessage.textContent = 'Лицо зарегистрировано!';
+                            
+                            const faceDescriptor = detections[0].descriptor;
+                            localStorage.setItem('faceID_' + userPhone, JSON.stringify(Array.from(faceDescriptor)));
+                            
+                            stream.getTracks().forEach(track => track.stop());
+                            
+                            setTimeout(() => {
+                                modal.style.display = 'none';
+                                document.getElementById('registerFaceIDBtn').style.display = 'none';
+                                alert('Face ID успешно зарегистрирован!');
+                            }, 1000);
+                        }
+                    }, 100);
+                });
+
+            } catch (error) {
+                console.error('Ошибка регистрации Face ID:', error);
+                alert('Ошибка при регистрации Face ID: ' + error.message);
+                closeFaceIDModal();
+            }
+        }
+
+        function closeFaceIDModal() {
+            const modal = document.getElementById('faceID-modal');
+            const video = document.getElementById('video');
+            
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            modal.style.display = 'none';
+        }
+
         function logout() {
             localStorage.removeItem('userPhone');
             window.location.href = 'index.html';

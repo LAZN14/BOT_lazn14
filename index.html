@@ -217,27 +217,55 @@
 
                 video.addEventListener('play', async () => {
                     const loadingMessage = document.getElementById('loading-message');
-                    loadingMessage.textContent = 'Идет распознавание...';
+                    loadingMessage.textContent = 'Идет проверка лица...';
                     
                     const detectionTimer = setInterval(async () => {
                         const detections = await faceapi.detectAllFaces(video, 
                             new faceapi.TinyFaceDetectorOptions())
-                            .withFaceLandmarks();
+                            .withFaceLandmarks()
+                            .withFaceDescriptors();
 
                         if (detections.length > 0) {
                             clearInterval(detectionTimer);
-                            loadingMessage.textContent = 'Лицо распознано!';
                             
-                            // Останавливаем видеопоток
-                            stream.getTracks().forEach(track => track.stop());
+                            // Проверяем все сохраненные Face ID
+                            let isMatch = false;
+                            let matchedPhone = null;
                             
-                            // Закрываем модальное окно
-                            setTimeout(() => {
-                                modal.style.display = 'none';
-                                // Успешная аутентификация
-                                localStorage.setItem('userPhone', 'FaceID_User');
-                                window.location.href = 'main.html';
-                            }, 1000);
+                            for (let i = 0; i < localStorage.length; i++) {
+                                const key = localStorage.key(i);
+                                if (key.startsWith('faceID_')) {
+                                    const savedDescriptor = new Float32Array(JSON.parse(localStorage.getItem(key)));
+                                    const distance = faceapi.euclideanDistance(detections[0].descriptor, savedDescriptor);
+                                    
+                                    if (distance < 0.6) { // Порог схожести
+                                        isMatch = true;
+                                        matchedPhone = key.replace('faceID_', '');
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (isMatch) {
+                                loadingMessage.textContent = 'Лицо распознано!';
+                                
+                                // Останавливаем видеопоток
+                                stream.getTracks().forEach(track => track.stop());
+                                
+                                // Закрываем модальное окно и входим
+                                setTimeout(() => {
+                                    modal.style.display = 'none';
+                                    localStorage.setItem('userPhone', matchedPhone);
+                                    window.location.href = 'main.html';
+                                }, 1000);
+                            } else {
+                                loadingMessage.textContent = 'Лицо не распознано';
+                                setTimeout(() => {
+                                    stream.getTracks().forEach(track => track.stop());
+                                    modal.style.display = 'none';
+                                    alert('Лицо не распознано. Попробуйте снова или войдите по номеру телефона.');
+                                }, 1000);
+                            }
                         }
                     }, 100);
                 });
