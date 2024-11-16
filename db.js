@@ -3,7 +3,7 @@ const sql = require('mssql');
 const config = {
     user: 'FaceIDUser', // или ваше имя пользователя SQL
     password: '12345',
-    server: 'localhost\\SQLEXPRESS', // или ваше имя сервера
+    server: 'local', // или ваше имя сервера
     database: 'FaceRecognitionDB',
     options: {
         encrypt: true,
