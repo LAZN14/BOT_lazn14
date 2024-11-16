@@ -27,9 +27,6 @@ class FaceIDHandler {
 
     async initCamera() {
         try {
-            // Запрашиваем разрешения через Telegram WebApp
-            await window.Telegram.WebApp.requestCamera();
-            
             this.video = document.createElement('video');
             this.canvas = document.createElement('canvas');
             
@@ -39,17 +36,24 @@ class FaceIDHandler {
             this.video.style.height = '100%';
             this.video.style.objectFit = 'cover';
 
-            this.showError('Запрос доступа к камере...');
-            
-            // Запрашиваем доступ к камере с минимальными настройками
-            this.stream = await navigator.mediaDevices.getUserMedia({
+            const constraints = {
                 video: {
-                    facingMode: "user"
+                    facingMode: 'user',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                 },
                 audio: false
-            });
-            
-            this.showError('Доступ к камере получен');
+            };
+
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (err) {
+                this.stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+            }
+
             this.video.srcObject = this.stream;
             
             return new Promise((resolve) => {
@@ -83,7 +87,7 @@ class FaceIDHandler {
             const imageData = this.canvas.toDataURL('image/jpeg', 1.0);
             return {
                 image: imageData,
-                faceData: null // Пока убираем распознавание лица
+                faceData: null
             };
         } catch (err) {
             this.showError('Ошибка при захвате фото: ' + err.message);
@@ -95,7 +99,6 @@ class FaceIDHandler {
         if (this.stream) {
             this.stream.getTracks().forEach(track => {
                 track.stop();
-                this.showError('Камера остановлена');
             });
         }
     }
